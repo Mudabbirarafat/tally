@@ -8,6 +8,10 @@ not "last write wins", not one person's afternoon silently discarded. That is
 a distributed-systems problem wearing an expense tracker's clothes, and it is
 the reason this project exists.
 
+**Try it: [tally-two-sepia.vercel.app](https://tally-two-sepia.vercel.app)** — the same
+code that builds an Android APK, running in a browser. That build has no sync
+server, so it works on one device and says so.
+
 ```
 96 tests · React Native + TypeScript · a sync server with zero dependencies
 ```
@@ -156,8 +160,9 @@ would change.
 Stated plainly, because the claims above are the ones this repository can
 currently support:
 
-- **Not deployed.** It runs locally, end to end. There is no hosted server
-  and no URL to hand anyone.
+- **The server is not deployed.** The app is, and works on one device. The
+  sync server needs durable storage, which the free tiers do not give, so
+  pairing two devices means running it yourself for now.
 - **Run on a real phone, but only through Expo Go.** An Android device loaded
   it over Wi-Fi, added an expense and pushed it to the sync server on a
   laptop — real storage, real network, its own device id. What is still
