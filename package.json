@@ -13,6 +13,7 @@
     "react-native-web": "^0.21.4"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "@types/react": "~19.3.0",
     "typescript": "~6.0.3",
     "vitest": "^5.1.0"
@@ -23,7 +24,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p server --noEmit",
+    "server": "node server/src/main.ts"
   },
   "private": true
 }

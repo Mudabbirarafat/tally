@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+
+    // Node 24 runs TypeScript directly by stripping types, and its resolver
+    // wants the real file name. So the server imports "./store.ts" rather
+    // than "./store" - which is why it needs a config of its own, separate
+    // from the app's bundler-style resolution.
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/contract.test.ts"]
+}
