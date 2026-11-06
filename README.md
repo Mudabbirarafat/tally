@@ -128,6 +128,29 @@ npm run web       # the app in a browser on :8081
 The app is React Native, so the same code builds an Android APK — but it also
 runs on Expo's web target, which means there is a demo that needs no phone.
 
+## Deploying it
+
+The app is a static export, so it goes anywhere static. `vercel.json` holds
+the build command rather than a dashboard setting, because a deployment you
+cannot read in the repository is one nobody can review:
+
+```json
+"buildCommand": "npx expo export --platform web --output-dir dist",
+"outputDirectory": "dist"
+```
+
+Set `EXPO_PUBLIC_SYNC_URL` to point a build at a sync server, or leave it
+unset and the app runs happily on one device.
+
+The server is the harder half, and the reason is storage. It keeps the
+shared log, so it needs a disk that survives a restart - which rules out the
+free tiers that give you an ephemeral filesystem. Worse, the failure is
+silent: clients track what the server has acknowledged, so after a wipe
+every device believes it has already pushed and stops re-sending. Each phone
+looks fine while sync is quietly dead. A persistent volume, or Postgres in
+place of SQLite, is the fix; `server/src/store.ts` is the only file that
+would change.
+
 ## What is not built yet
 
 Stated plainly, because the claims above are the ones this repository can
