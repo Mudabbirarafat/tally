@@ -27,5 +27,6 @@
     "typecheck": "tsc --noEmit && tsc -p server --noEmit",
     "server": "node server/src/main.ts"
   },
-  "private": true
+  "private": true,
+  "description": "Shared expenses that work with no signal: a convergent offline-first ledger in React Native, with a zero-dependency sync server"
 }

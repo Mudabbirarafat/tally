@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# local sync database
+tally.sqlite
+tally.sqlite-*
