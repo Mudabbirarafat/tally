@@ -9,12 +9,22 @@
  * Opening is asynchronous because reading from disk is, and the UI has to
  * cope with the gap: on a cold start the app is briefly a ledger that does
  * not exist yet. That is a real state, not an edge case, so it is modelled.
+ *
+ * Syncing never blocks an edit. Adding an expense writes to disk and returns;
+ * the sync is a separate thing that may fail, and the app stays fully usable
+ * when it does. That is the whole point of offline-first - the network is a
+ * convenience, not a dependency.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Entry, Transfer } from '../sync/ledger';
 import { LedgerStore, type NewExpense } from '../store/ledgerStore';
 import { deviceStorage, type Storage } from '../store/storage';
+import { SyncClient, type SyncOutcome } from '../sync/client';
+import type { Entry, Transfer } from '../sync/ledger';
+
+/** Overridden at build time; the default is a server on this machine. */
+const SYNC_URL = process.env.EXPO_PUBLIC_SYNC_URL ?? 'http://127.0.0.1:4000';
+const TRIP = process.env.EXPO_PUBLIC_TRIP ?? 'demo';
 
 export type LedgerState =
   | { status: 'opening' }
@@ -27,16 +37,23 @@ export type LedgerState =
       people: string[];
       pending: number;
       device: string;
+      trip: string;
       recovered: boolean;
+      syncing: boolean;
+      lastSync: SyncOutcome | null;
       addExpense: (expense: NewExpense) => Promise<void>;
       removeExpense: (id: string) => Promise<void>;
+      sync: () => Promise<void>;
     };
 
 export function useLedger(storage?: Storage): LedgerState {
   const store = useRef<LedgerStore | null>(null);
+  const client = useRef<SyncClient | null>(null);
   const [version, setVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<SyncOutcome | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -44,6 +61,7 @@ export function useLedger(storage?: Storage): LedgerState {
       .then((opened) => {
         if (!live) return;
         store.current = opened;
+        client.current = new SyncClient(opened, { baseUrl: SYNC_URL, trip: TRIP });
         setOpen(true);
       })
       .catch((problem: unknown) => {
@@ -56,20 +74,41 @@ export function useLedger(storage?: Storage): LedgerState {
 
   const bump = useCallback(() => setVersion((n) => n + 1), []);
 
+  const sync = useCallback(async () => {
+    if (!client.current) return;
+    setSyncing(true);
+    try {
+      // A failed sync is an outcome, not an exception: the app carries on
+      // working offline and the banner says what happened.
+      setLastSync(await client.current.sync());
+    } finally {
+      setSyncing(false);
+      bump();
+    }
+  }, [bump]);
+
+  // One sync on open, so a phone that was offline yesterday catches up
+  // without the person having to ask.
+  useEffect(() => {
+    if (open) void sync();
+  }, [open, sync]);
+
   const addExpense = useCallback(
     async (expense: NewExpense) => {
       await store.current?.addExpense(expense);
       bump();
+      void sync();
     },
-    [bump],
+    [bump, sync],
   );
 
   const removeExpense = useCallback(
     async (id: string) => {
       await store.current?.removeExpense(id);
       bump();
+      void sync();
     },
-    [bump],
+    [bump, sync],
   );
 
   return useMemo<LedgerState>(() => {
@@ -78,9 +117,7 @@ export function useLedger(storage?: Storage): LedgerState {
     if (!open || !current) return { status: 'opening' };
 
     const entries = current.entries;
-    const people = [
-      ...new Set(entries.flatMap((entry) => [entry.payer, ...entry.participants])),
-    ]
+    const people = [...new Set(entries.flatMap((entry) => [entry.payer, ...entry.participants]))]
       .filter(Boolean)
       .sort();
 
@@ -92,10 +129,14 @@ export function useLedger(storage?: Storage): LedgerState {
       people,
       pending: current.pending,
       device: current.device,
+      trip: TRIP,
       recovered: current.hadCorruptStorage,
+      syncing,
+      lastSync,
       addExpense,
       removeExpense,
+      sync,
     };
     // `version` is the dependency that matters: it changes when the store does.
-  }, [open, error, version, addExpense, removeExpense]);
+  }, [open, error, version, syncing, lastSync, addExpense, removeExpense, sync]);
 }

@@ -19,6 +19,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import type { SyncOutcome } from './src/sync/client';
 import { MoneyError, parseAmount, withSymbol } from './src/ui/money';
 import { useLedger } from './src/ui/useLedger';
 
@@ -53,7 +54,14 @@ export default function App() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Header pending={ledger.pending} device={ledger.device} />
+        <Header
+          pending={ledger.pending}
+          device={ledger.device}
+          trip={ledger.trip}
+          syncing={ledger.syncing}
+          lastSync={ledger.lastSync}
+          onSync={ledger.sync}
+        />
 
         {ledger.recovered && (
           <View style={[styles.banner, styles.bannerWarn]}>
@@ -100,19 +108,66 @@ export default function App() {
   );
 }
 
-function Header({ pending, device }: { pending: number; device: string }) {
+function Header({
+  pending,
+  device,
+  trip,
+  syncing,
+  lastSync,
+  onSync,
+}: {
+  pending: number;
+  device: string;
+  trip: string;
+  syncing: boolean;
+  lastSync: SyncOutcome | null;
+  onSync: () => Promise<void>;
+}) {
+  // Three different situations, three different sentences. "Offline" is
+  // normal and fixes itself; a server that refused the data is a bug someone
+  // has to look at; and neither should be reported as the other.
+  const offline = lastSync?.offline === true;
+  const refused = !offline && typeof lastSync?.problem === 'string';
+
+  const state = syncing ? 'syncing' : offline ? 'offline' : pending > 0 ? 'pending' : 'synced';
+  const label = {
+    syncing: 'syncing…',
+    offline: `offline · ${pending} waiting`,
+    pending: `${pending} to sync`,
+    synced: 'all synced',
+  }[state];
+
   return (
     <View style={styles.header}>
       <View>
         <Text style={styles.brand}>tally</Text>
         <Text style={styles.muted}>Shared costs that work with no signal</Text>
       </View>
-      <View style={styles.pill}>
-        <View style={[styles.dot, pending > 0 ? styles.dotPending : styles.dotSynced]} />
-        <Text style={styles.pillText}>{pending > 0 ? `${pending} to sync` : 'all synced'}</Text>
+
+      <View style={styles.headerRow}>
+        <View style={styles.pill}>
+          <View style={[styles.dot, styles[`dot_${state}`]]} />
+          <Text style={styles.pillText}>{label}</Text>
+        </View>
+        <Pressable
+          onPress={() => void onSync()}
+          disabled={syncing}
+          style={[styles.syncButton, syncing && styles.syncButtonBusy]}
+        >
+          <Text style={styles.syncButtonText}>{syncing ? '…' : 'Sync now'}</Text>
+        </Pressable>
       </View>
+
+      {offline && (
+        <Text style={styles.offlineNote}>
+          No connection to the sync server. Everything still works; your changes are saved here
+          and will go up when it is reachable.
+        </Text>
+      )}
+      {refused && <Text style={styles.error}>Sync refused: {lastSync?.problem}</Text>}
+
       <Text style={styles.device} numberOfLines={1}>
-        {device}
+        {trip} · {device}
       </Text>
     </View>
   );
@@ -293,8 +348,22 @@ const styles = StyleSheet.create({
   },
   pillText: { color: C.muted, fontSize: 12 },
   dot: { width: 7, height: 7, borderRadius: 4 },
-  dotSynced: { backgroundColor: C.good },
-  dotPending: { backgroundColor: C.warn },
+  dot_synced: { backgroundColor: C.good },
+  dot_pending: { backgroundColor: C.warn },
+  dot_syncing: { backgroundColor: C.accent },
+  dot_offline: { backgroundColor: C.faint },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  syncButton: {
+    borderColor: C.line,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 13,
+    backgroundColor: C.card,
+  },
+  syncButtonBusy: { opacity: 0.5 },
+  syncButtonText: { color: C.text, fontSize: 12, fontWeight: '600' },
+  offlineNote: { color: C.muted, fontSize: 12.5, lineHeight: 18 },
   banner: { borderRadius: 12, padding: 12, borderWidth: 1 },
   bannerWarn: { backgroundColor: '#1d1708', borderColor: '#4a3c15' },
   bannerText: { color: '#ffd89b', fontSize: 13, lineHeight: 19 },
