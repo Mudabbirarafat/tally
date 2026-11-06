@@ -146,6 +146,36 @@ cannot read in the repository is one nobody can review:
 Set `EXPO_PUBLIC_SYNC_URL` to point a build at a sync server, or leave it
 unset and the app runs happily on one device.
 
+### The server, on Fly
+
+`Dockerfile` and `fly.toml` are in the repository. The image is six lines of
+instructions because the server has no dependencies to install and no build
+step: it copies `server/`, and runs it.
+
+```bash
+fly auth login
+fly launch --copy-config --no-deploy      # app names are global; pick a free one
+fly volumes create tally_data -r sin -s 1
+fly deploy
+```
+
+Then point the app at it and redeploy the web build:
+
+```
+EXPO_PUBLIC_SYNC_URL = https://<your-app>.fly.dev
+```
+
+The volume is the part that matters. `min_machines_running = 0` lets the
+machine sleep between syncs, and waking costs a second or two — which an
+offline-first app absorbs without the user noticing, because a sync that has
+to wait is not a failure.
+
+A volume binds the app to a single machine. That is the right trade here:
+SQLite on a shared filesystem would be a worse problem than not scaling
+horizontally.
+
+### Why the storage matters more than it looks
+
 The server is the harder half, and the reason is storage. It keeps the
 shared log, so it needs a disk that survives a restart - which rules out the
 free tiers that give you an ephemeral filesystem. Worse, the failure is
