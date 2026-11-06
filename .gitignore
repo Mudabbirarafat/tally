@@ -43,3 +43,6 @@ yarn-error.*
 # local sync database
 tally.sqlite
 tally.sqlite-*
+
+# web export
+dist/

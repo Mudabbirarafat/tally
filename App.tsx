@@ -60,6 +60,7 @@ export default function App() {
           trip={ledger.trip}
           syncing={ledger.syncing}
           lastSync={ledger.lastSync}
+          syncEnabled={ledger.syncEnabled}
           onSync={ledger.sync}
         />
 
@@ -114,6 +115,7 @@ function Header({
   trip,
   syncing,
   lastSync,
+  syncEnabled,
   onSync,
 }: {
   pending: number;
@@ -121,6 +123,7 @@ function Header({
   trip: string;
   syncing: boolean;
   lastSync: SyncOutcome | null;
+  syncEnabled: boolean;
   onSync: () => Promise<void>;
 }) {
   // Three different situations, three different sentences. "Offline" is
@@ -129,8 +132,17 @@ function Header({
   const offline = lastSync?.offline === true;
   const refused = !offline && typeof lastSync?.problem === 'string';
 
-  const state = syncing ? 'syncing' : offline ? 'offline' : pending > 0 ? 'pending' : 'synced';
+  const state = !syncEnabled
+    ? 'local'
+    : syncing
+      ? 'syncing'
+      : offline
+        ? 'offline'
+        : pending > 0
+          ? 'pending'
+          : 'synced';
   const label = {
+    local: 'on this device',
     syncing: 'syncing…',
     offline: `offline · ${pending} waiting`,
     pending: `${pending} to sync`,
@@ -149,6 +161,7 @@ function Header({
           <View style={[styles.dot, styles[`dot_${state}`]]} />
           <Text style={styles.pillText}>{label}</Text>
         </View>
+        {syncEnabled && (
         <Pressable
           onPress={() => void onSync()}
           disabled={syncing}
@@ -156,8 +169,15 @@ function Header({
         >
           <Text style={styles.syncButtonText}>{syncing ? '…' : 'Sync now'}</Text>
         </Pressable>
+        )}
       </View>
 
+      {!syncEnabled && (
+        <Text style={styles.offlineNote}>
+          This build has no sync server. Everything works and is saved on this device; pair two
+          devices by running the server from the repository.
+        </Text>
+      )}
       {offline && (
         <Text style={styles.offlineNote}>
           No connection to the sync server. Everything still works; your changes are saved here
@@ -352,6 +372,7 @@ const styles = StyleSheet.create({
   dot_pending: { backgroundColor: C.warn },
   dot_syncing: { backgroundColor: C.accent },
   dot_offline: { backgroundColor: C.faint },
+  dot_local: { backgroundColor: C.muted },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   syncButton: {
     borderColor: C.line,

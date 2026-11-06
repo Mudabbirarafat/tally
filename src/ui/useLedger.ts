@@ -22,8 +22,13 @@ import { deviceStorage, type Storage } from '../store/storage';
 import { SyncClient, type SyncOutcome } from '../sync/client';
 import type { Entry, Transfer } from '../sync/ledger';
 
-/** Overridden at build time; the default is a server on this machine. */
-const SYNC_URL = process.env.EXPO_PUBLIC_SYNC_URL ?? 'http://127.0.0.1:4000';
+/**
+ * Overridden at build time. Empty is a real configuration, not a mistake:
+ * the app is useful with no server at all, and a build that has not been
+ * given one should say "local only" rather than spend its life reporting a
+ * connection failure it was never meant to make.
+ */
+const SYNC_URL = process.env.EXPO_PUBLIC_SYNC_URL ?? '';
 const TRIP = process.env.EXPO_PUBLIC_TRIP ?? 'demo';
 
 export type LedgerState =
@@ -41,6 +46,8 @@ export type LedgerState =
       recovered: boolean;
       syncing: boolean;
       lastSync: SyncOutcome | null;
+      /** False when this build has no sync server configured at all. */
+      syncEnabled: boolean;
       addExpense: (expense: NewExpense) => Promise<void>;
       removeExpense: (id: string) => Promise<void>;
       sync: () => Promise<void>;
@@ -61,7 +68,9 @@ export function useLedger(storage?: Storage): LedgerState {
       .then((opened) => {
         if (!live) return;
         store.current = opened;
-        client.current = new SyncClient(opened, { baseUrl: SYNC_URL, trip: TRIP });
+        client.current = SYNC_URL
+          ? new SyncClient(opened, { baseUrl: SYNC_URL, trip: TRIP })
+          : null;
         setOpen(true);
       })
       .catch((problem: unknown) => {
@@ -133,6 +142,7 @@ export function useLedger(storage?: Storage): LedgerState {
       recovered: current.hadCorruptStorage,
       syncing,
       lastSync,
+      syncEnabled: SYNC_URL !== '',
       addExpense,
       removeExpense,
       sync,
