@@ -135,9 +135,17 @@ currently support:
 
 - **Not deployed.** It runs locally, end to end. There is no hosted server
   and no URL to hand anyone.
-- **Never run on a physical phone.** Verified through tests and the web
-  target. The native build is configured but unexercised, so anything
-  device-specific — real storage limits, background behaviour — is untested.
+- **Run on a real phone, but only through Expo Go.** An Android device loaded
+  it over Wi-Fi, added an expense and pushed it to the sync server on a
+  laptop — real storage, real network, its own device id. What is still
+  unexercised is a standalone build: no APK has been produced through EAS, so
+  anything that differs outside Expo Go — background behaviour, app
+  lifecycle under memory pressure — is untested. iOS has never been run at
+  all.
+- **One trip per install.** The read cursor and the acknowledged set are
+  stored per device, not per trip, so pointing an existing install at a
+  different trip id confuses both. Fine for one group; wrong as soon as
+  someone is on two trips.
 - **No authentication.** Anyone who knows a trip id can read and write it.
   Fine for a demo, not for people's money.
 - **The acknowledged set grows with the log.** Fine for a trip, wrong for a
