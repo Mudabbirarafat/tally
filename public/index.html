@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>%WEB_TITLE%</title>
+
+    <!--
+      Expo generates this file, so it was customised with
+      `npx expo customize public/index.html` rather than patched after each
+      export. The placeholders above are filled by the exporter; everything
+      below is ours.
+
+      Without these the link pastes into a message or a post as a bare URL:
+      no title, no description, no picture. For a project whose point is to
+      be looked at, that is a real cost.
+    -->
+    <meta
+      name="description"
+      content="Shared expenses that work with no signal. An offline-first ledger that converges after two phones have both been editing, with the money handled in integer paise."
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tally-two-sepia.vercel.app/" />
+    <meta property="og:title" content="tally — shared costs that work with no signal" />
+    <meta
+      property="og:description"
+      content="Two phones edit the same trip offline and still agree afterwards. Hybrid logical clocks, per-field last-write-wins, and a split that never loses a paisa."
+    />
+    <meta property="og:image" content="https://tally-two-sepia.vercel.app/preview.jpg" />
+    <meta property="og:image:alt" content="The tally app showing who owes whom after an expense split three ways." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="tally — shared costs that work with no signal" />
+    <meta
+      name="twitter:description"
+      content="An offline-first expense ledger that provably converges, in React Native, with a sync server that has no dependencies."
+    />
+    <meta name="twitter:image" content="https://tally-two-sepia.vercel.app/preview.jpg" />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>
