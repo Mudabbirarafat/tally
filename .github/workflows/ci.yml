@@ -1,0 +1,82 @@
+# The app and the sync server are checked separately, because they do not
+# share a toolchain: the app has dependencies and a type-checked React Native
+# codebase, and the server has neither.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # node:sqlite needs 22.5+, and type stripping is on by default from
+          # 23, which is how the server runs .ts without a build step.
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      # Two projects: the Expo app, and the server's own tsconfig.
+      - run: npm run typecheck
+
+  server:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Deliberately no npm ci. The server imports node:http and node:sqlite
+      # and nothing else, which is what lets its image be a COPY and a CMD.
+      # If that ever stops being true this step is where it shows.
+      - name: Boot it the way the container does
+        env:
+          PORT: 4000
+          DATABASE_PATH: ${{ runner.temp }}/smoke.sqlite
+        run: |
+          node server/src/main.ts &
+          echo "$!" > server.pid
+
+      - name: It has to answer
+        run: |
+          node --eval '
+            const deadline = Date.now() + 15000;
+            let last;
+            while (Date.now() < deadline) {
+              try {
+                const res = await fetch("http://127.0.0.1:4000/health");
+                const body = await res.json();
+                if (res.ok && body.status === "ok") {
+                  console.log("health:", JSON.stringify(body));
+                  process.exit(0);
+                }
+                last = `status ${res.status}`;
+              } catch (err) {
+                last = err.message;
+              }
+              await new Promise((r) => setTimeout(r, 500));
+            }
+            console.error("server never became healthy:", last);
+            process.exit(1);
+          '
+
+      - name: Stop it
+        if: always()
+        run: kill "$(cat server.pid)" 2>/dev/null || true

@@ -1,5 +1,7 @@
 # tally
 
+[![ci](https://github.com/Mudabbirarafat/tally/actions/workflows/ci.yml/badge.svg)](https://github.com/Mudabbirarafat/tally/actions/workflows/ci.yml)
+
 Shared expenses for people with no signal.
 
 Two friends split costs on a trip. Both phones are offline for a day, both
